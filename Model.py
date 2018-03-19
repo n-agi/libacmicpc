@@ -97,3 +97,21 @@ class Status(BOJObject):
         self.language = language
         self.length = length
         self.submit_time = submit_time
+
+class Exercise(BOJObject):
+    __slots__ = ['idx', 'title', 'first', 'second', 'start', 'end']
+    __types__ = {
+            "idx":types.IntType,
+            "title":types.StringType,
+            "first":types.StringType,
+            "second":types.StringType,
+            "start":types.IntType,
+            "end":types.IntType
+            }
+    def __init__(self, idx=0, title='', first='', second='', start=0, end=0):
+        self.idx = idx
+        self.title = title
+        self.first = first
+        self.second = second
+        self.start = start
+        self.end = end

@@ -1,10 +1,15 @@
 #coding: utf-8
 from Model import *
+import datetime
 import requests
 from BeautifulSoup import BeautifulSoup as bs
 class LoginError(Exception):
     pass
 class NoUserFoundException(Exception):
+    pass
+class NoGroupFoundException(Exception):
+    pass
+class NoExerciseFoundException(Exception):
     pass
 class Parser:
     def __init__(self, username="", password=""):
@@ -34,6 +39,8 @@ class Parser:
             raise LoginError()
         url = "https://www.acmicpc.net/group/%d" % (idx)
         req = self.s.get(url)
+        if req.status_code == 404:
+            raise NoGroupFoundException("Group does not exists or you are not allowed to get this group info.")
         b = bs(req.text)
         ph = b.find("div", attrs={"class":"page-header"})
         group_name = ph.find("h1").text
@@ -52,7 +59,7 @@ class Parser:
         return map(lambda x: x.find("a").text, members)
     def getStatus(self, group=None, start=-1):
         def toTimestamp(s):
-                return int(datetime.datetime.strptime(s, '%Y년 %m월 %d일 %H시 %M분 %S초').strftime("%s") )
+                return int(datetime.datetime.strptime(s, u'%Y년 %m월 %d일 %H시 %M분 %S초'.encode("utf-8")).strftime("%s") )
         def resultToInt(s):
             table = {u"맞았습니다!!":4,u"출력 형식이 잘못되었습니다":5, u"틀렸습니다":6, u"시간 초과":7, u"메모리 초과":8, u"출력 초과":9, u"런타임 에러":10, u"기다리는 중":0, u"재채점을 기다리는 중":1, u"컴파일 하는 중":2, u"채점중":3}
             try:
@@ -89,6 +96,49 @@ class Parser:
             submitTime = int(tds[8].find("a")['data-timestamp'])
             ret.append(Status(idx, username, problem, result, memory, time, language, length, submitTime))
         return ret
+    def getExercise(self, g=None):
+        def toTimestamp(s):
+            return int(datetime.datetime.strptime(s.encode("utf-8"), u'%Y년 %m월 %d일 %H시 %M분'.encode("utf-8")).strftime(u"%s") )
+        if not self.logined:
+            raise LoginError()
+        if not isinstance(g, Group):
+            raise TypeError("getExercise must call with class Group")
+        ret = []
+        url = 'https://www.acmicpc.net/group/practice/{0}'.format(g.idx)
+        req = self.s.get(url)
+        if req.status_code == 404:
+            raise NoGroupFoundException("Group does not exists or you are not allowed to get this group info.")
+        b = bs(req.text)
+        tbody = b.find("tbody")
+        for tr in tbody.findAll("tr"):
+            tds = tr.findAll("td")
+            idx = int(tds[0].find("a")['href'].split("/")[-1])
+            title = tds[0].text
+            first = tds[1].text
+            second = tds[2].text
+            start = toTimestamp(tds[3].text)
+            end = toTimestamp(tds[4].text)
+            ret.append(Exercise(idx, title, first ,second, start, end))
+        return ret
+    def getExerciseDetail(self, g=None, e=None):
+        if not self.logined:
+            raise LoginError()
+        if not isinstance(g, Group):
+            raise TypeError("getExercise must call with class Group")
+        if not isinstance(e, Exercise):
+            raise TypeError("getExercise must call with class Exercise")
+        url = 'https://www.acmicpc.net/group/practice/543/{0}'.format(e.idx)
+        req = self.s.get(url)
+        if req.status_code == 404:
+            raise NoExerciseFoundException("Exercise index {0} was not found.".format(e.idx))
+        b = bs(req.text)
+        problems = b.findAll("li", attrs={"class":"list-group-item"})
+        for problem in problems:
+            prob_idx = problem.find("strong").text
+            prob_num = int(problem.find("a")['href'].split("/")[-1])
+            prob_title = problem.text.split(" ")[-1]
+            print prob_idx, prob_num, prob_title
+        #TODO: Get score lists...
     def getUser(self, username=''):
         #self, username='', description='', rank=0, solved=0, submitted=0, workbook_cleared=0, solution_written=0, contest_first=0, contest_second=0, problem_created=0, problem_translated=0, problem_foundtypo=0, problem_foundmistake_data=0,                      problem_foundmistake_condition=0, problem_adddata=0, problem_found_noncecondition=0, problem_foundwrongtranslation=0, problem_createddata=0, problem_createspecialjudge=0, accepted=0, wrong_output=0, wrong=0, tle=0, mle=0,
         #runtime=0, compile=0, school=0
