@@ -12,8 +12,8 @@ class Parser:
         self.logined = False
         self.username = username
         self.password = password
-        while not self.login():
-            continue
+        if not self.login():
+            raise LoginError("Failed to Login.")
     def login(self):
         if self.username == "" or self.password == "":
             return
@@ -50,7 +50,7 @@ class Parser:
         b = bs(req.text)
         members = b.findAll("div", attrs={"class":"col-xs-6 col-sm-4 col-md-3 member"})
         return map(lambda x: x.find("a").text, members)
-    def getStatus(self, start=-1):
+    def getStatus(self, group=None, start=-1):
         def toTimestamp(s):
                 return int(datetime.datetime.strptime(s, '%Y년 %m월 %d일 %H시 %M분 %S초').strftime("%s") )
         def resultToInt(s):
@@ -61,7 +61,9 @@ class Parser:
                 return 0
         if not self.logined:
             raise LoginError()
-        url = 'https://www.acmicpc.net/status/?group_id=543'
+        if not isinstance(group, Group):
+            raise TypeError("getStatus must call with class Group")
+        url = 'https://www.acmicpc.net/status/?group_id={0}'.format(group.idx)
         if start >= 0:
             url += '&top=%d' % (start)
         req = self.s.get(url)

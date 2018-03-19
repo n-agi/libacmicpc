@@ -23,7 +23,6 @@ class DB(SingletonInstance):
     def __init__(self):
         import os
         self.path = os.path.realpath(os.path.dirname(__file__)) + "/acmicpc.db"
-        print self.path
         self.conn = sqlite3.connect(self.path, check_same_thread=False)
         self.cursor= self.conn.cursor()
         self.initDB()

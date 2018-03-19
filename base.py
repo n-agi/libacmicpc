@@ -42,7 +42,6 @@ class BOJObject(object):
         query += ", ".join(inner)
         query += ", primary key({0})".format(cls.__slots__[0])
         query += ")"
-        print "[* DEBUG *] : {0}".format(query)
         return query
     def to_sql2(self):
         import types
@@ -53,13 +52,7 @@ class BOJObject(object):
         query += ")"
         return query
     def to_json(self):
-        """
-        Returns:
-            :obj:`str`
-        """
-
         return json.dumps(self.to_dict())
-
     def to_dict(self):
         data = dict()
         for idx, key in enumerate(self.__slots__):
